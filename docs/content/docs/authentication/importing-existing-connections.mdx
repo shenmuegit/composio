@@ -15,6 +15,12 @@ This is useful when:
 
 <ImportConnectionFlow />
 
+<Callout title="Credential validation">
+An `ACTIVE` connection doesn't guarantee that the provider has verified your credentials.
+
+For API key, bearer token, and basic auth imports, Composio checks credentials automatically where the toolkit supports it. If the provider rejects them, creation fails with `ConnectedAccount_CredentialValidationRejected`. If the check isn't supported, or the provider is unreachable, times out, or returns a service error, the connection can still be created. Handle provider authentication errors when you execute tools. See the [connection creation reference](/reference/api-reference/connected-accounts/postConnectedAccounts).
+</Callout>
+
 ## Prerequisites
 
 1. **An [auth config](/docs/authentication/programmatic-auth-configs)** for the toolkit you're importing into

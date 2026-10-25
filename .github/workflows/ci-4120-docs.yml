@@ -1,0 +1,67 @@
+name: "Verify docs #4120 on fork"
+
+on:
+  push:
+    branches: [codex/ci-4120-docs]
+
+permissions:
+  contents: read
+
+jobs:
+  docs:
+    if: github.repository == 'shenmuegit/composio'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: docs
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      BUN_INSTALL_CACHE_DIR: ${{ github.workspace }}/.ci-cache/bun
+      TMPDIR: ${{ github.workspace }}/.ci-cache/tmp
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Prepare project-local caches
+        run: mkdir -p "$BUN_INSTALL_CACHE_DIR" "$TMPDIR"
+      - uses: ./.github/actions/setup-node-pnpm-bun
+      - uses: ./.github/actions/setup-python-uv
+      - name: Validate repository guidance
+        working-directory: .
+        run: |
+          node ts/scripts/validate-agent-skills.mjs
+          node ts/scripts/test-skill-routing.mjs
+      - name: Install locked docs dependencies
+        run: bun install --frozen-lockfile
+      - name: Static tests
+        run: bun run test
+      - name: Lint
+        run: bun run lint
+      - name: Internal links
+        run: bun run lint:links
+      - name: Type checks
+        run: bun run types:check
+      - name: Authored TypeScript snippets
+        run: bun run check:typescript-snippets
+      - name: Python helper regressions
+        run: bun run test:python-snippets
+      - name: Python snippets
+        run: bun run check:python-snippets
+      - name: KB semantic artifact
+        run: bun run check:kb-semantic --allow-stale
+      - name: Production build
+        run: bun run build
+      - name: Built-site integration tests
+        run: |
+          bun run start > "$TMPDIR/docs-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://localhost:3000 > /dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://localhost:3000 > /dev/null
+          bun run test:integration
