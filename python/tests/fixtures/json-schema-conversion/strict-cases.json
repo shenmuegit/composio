@@ -3965,6 +3965,654 @@
           "reason": "optional-property-nullable"
         }
       ]
+    },
+    {
+      "id": "anyOf-later-object-branch-arguments",
+      "description": "Null arguments declared only in a later object branch are omitted.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "channel": {
+                    "type": "string"
+                  }
+                },
+                "required": ["channel"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["email"]
+              }
+            ]
+          }
+        },
+        "required": ["target"]
+      },
+      "strict": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "channel": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["channel"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": ["string", "null"]
+                    }
+                  },
+                  "required": ["email", "note"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": ["target"],
+          "additionalProperties": false
+        }
+      },
+      "changes": [
+        {
+          "path": "properties.target.anyOf[1].properties.note",
+          "reason": "optional-property-nullable"
+        }
+      ],
+      "arguments": [
+        {
+          "input": {
+            "target": {
+              "email": "a@example.com",
+              "note": null
+            }
+          },
+          "output": {
+            "target": {
+              "email": "a@example.com"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "oneOf-later-object-branch-arguments",
+      "description": "Null arguments declared only in a later object branch are omitted.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "channel": {
+                    "type": "string"
+                  }
+                },
+                "required": ["channel"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["email"]
+              }
+            ]
+          }
+        },
+        "required": ["target"]
+      },
+      "strict": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "channel": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["channel"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": ["string", "null"]
+                    }
+                  },
+                  "required": ["email", "note"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": ["target"],
+          "additionalProperties": false
+        }
+      },
+      "changes": [
+        {
+          "path": "properties.target",
+          "reason": "one-of-converted"
+        },
+        {
+          "path": "properties.target.anyOf[1].properties.note",
+          "reason": "optional-property-nullable"
+        }
+      ],
+      "arguments": [
+        {
+          "input": {
+            "target": {
+              "email": "a@example.com",
+              "note": null
+            }
+          },
+          "output": {
+            "target": {
+              "email": "a@example.com"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "composed-shared-child-arguments",
+      "description": "All declarations of a shared child participate in nested argument cleanup.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "cfg": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channel"]
+                  }
+                },
+                "required": ["cfg"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "cfg": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "type": "string"
+                      },
+                      "note": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["email"]
+                  }
+                },
+                "required": ["cfg"]
+              }
+            ]
+          }
+        },
+        "required": ["target"]
+      },
+      "strict": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "cfg": {
+                      "type": "object",
+                      "properties": {
+                        "channel": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["channel"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["cfg"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "cfg": {
+                      "type": "object",
+                      "properties": {
+                        "email": {
+                          "type": "string"
+                        },
+                        "note": {
+                          "type": ["string", "null"]
+                        }
+                      },
+                      "required": ["email", "note"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["cfg"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": ["target"],
+          "additionalProperties": false
+        }
+      },
+      "changes": [
+        {
+          "path": "properties.target.anyOf[1].properties.cfg.properties.note",
+          "reason": "optional-property-nullable"
+        }
+      ],
+      "arguments": [
+        {
+          "input": {
+            "target": {
+              "cfg": {
+                "email": "a@example.com",
+                "note": null
+              }
+            }
+          },
+          "output": {
+            "target": {
+              "cfg": {
+                "email": "a@example.com"
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "composed-array-items-arguments",
+      "description": "Array arguments use item schemas from every array branch.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "channel": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["channel"]
+                }
+              },
+              {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["email"]
+                }
+              }
+            ]
+          }
+        },
+        "required": ["target"]
+      },
+      "strict": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "channel": {
+                        "type": "string"
+                      }
+                    },
+                    "required": ["channel"],
+                    "additionalProperties": false
+                  }
+                },
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "type": "string"
+                      },
+                      "note": {
+                        "type": ["string", "null"]
+                      }
+                    },
+                    "required": ["email", "note"],
+                    "additionalProperties": false
+                  }
+                }
+              ]
+            }
+          },
+          "required": ["target"],
+          "additionalProperties": false
+        }
+      },
+      "changes": [
+        {
+          "path": "properties.target.anyOf[1].items.properties.note",
+          "reason": "optional-property-nullable"
+        }
+      ],
+      "arguments": [
+        {
+          "input": {
+            "target": [
+              {
+                "email": "a@example.com",
+                "note": null
+              },
+              null
+            ]
+          },
+          "output": {
+            "target": [
+              {
+                "email": "a@example.com"
+              },
+              null
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "composed-nullable-child-arguments",
+      "description": "A later declaration that accepts null keeps an explicit clearing value.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "cfg": {
+                    "type": "object",
+                    "properties": {
+                      "note": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "required": ["cfg"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "cfg": {
+                    "type": "object",
+                    "properties": {
+                      "email": {
+                        "type": "string"
+                      },
+                      "note": {
+                        "type": ["string", "null"]
+                      }
+                    },
+                    "required": ["email"]
+                  }
+                },
+                "required": ["cfg"]
+              }
+            ]
+          }
+        },
+        "required": ["target"]
+      },
+      "strict": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "cfg": {
+                      "type": "object",
+                      "properties": {
+                        "note": {
+                          "type": ["string", "null"]
+                        }
+                      },
+                      "required": ["note"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["cfg"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "cfg": {
+                      "type": "object",
+                      "properties": {
+                        "email": {
+                          "type": "string"
+                        },
+                        "note": {
+                          "type": ["string", "null"]
+                        }
+                      },
+                      "required": ["email", "note"],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": ["cfg"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "required": ["target"],
+          "additionalProperties": false
+        }
+      },
+      "changes": [
+        {
+          "path": "properties.target.anyOf[0].properties.cfg.properties.note",
+          "reason": "optional-property-nullable"
+        },
+        {
+          "path": "properties.target.anyOf[1].properties.cfg.properties.note",
+          "reason": "optional-property-nullable"
+        }
+      ],
+      "arguments": [
+        {
+          "input": {
+            "target": {
+              "cfg": {
+                "email": "a@example.com",
+                "note": null
+              }
+            }
+          },
+          "output": {
+            "target": {
+              "cfg": {
+                "email": "a@example.com",
+                "note": null
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "composed-ref-arguments",
+      "description": "Referenced object alternatives clean arguments from later branches.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "target": {
+            "$ref": "#/$defs/Target"
+          }
+        },
+        "required": ["target"],
+        "$defs": {
+          "Target": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "channel": {
+                    "type": "string"
+                  }
+                },
+                "required": ["channel"]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                },
+                "required": ["email"]
+              }
+            ]
+          }
+        }
+      },
+      "strict": {
+        "schema": {
+          "type": "object",
+          "properties": {
+            "target": {
+              "$ref": "#/$defs/Target"
+            }
+          },
+          "required": ["target"],
+          "$defs": {
+            "Target": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "channel": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["channel"],
+                  "additionalProperties": false
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "email": {
+                      "type": "string"
+                    },
+                    "note": {
+                      "type": ["string", "null"]
+                    }
+                  },
+                  "required": ["email", "note"],
+                  "additionalProperties": false
+                }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "changes": [
+        {
+          "path": "$defs.Target.anyOf[1].properties.note",
+          "reason": "optional-property-nullable"
+        }
+      ],
+      "arguments": [
+        {
+          "input": {
+            "target": {
+              "email": "a@example.com",
+              "note": null
+            }
+          },
+          "output": {
+            "target": {
+              "email": "a@example.com"
+            }
+          }
+        }
+      ]
     }
   ]
 }

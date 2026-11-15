@@ -637,45 +637,56 @@ def omit_null_tool_arguments(
     tool's real schema, so it is treated as "omitted". A ``null`` the original
     schema accepts is kept. ``schema`` is the tool schema the strict rewrite
     was computed from (``StrictJsonSchemaResult.source``). The input is not
-    mutated.
+    mutated. For composed shapes, ``None`` is kept when any declaration accepts it.
     """
     root: dict[str, t.Any] = schema if isinstance(schema, dict) else {}
     return t.cast(
-        dict[str, t.Any], _omit_nulls(arguments, root, root, 0, _NullCheck(root))
+        dict[str, t.Any], _omit_nulls(arguments, [root], root, 0, _NullCheck(root))
     )
 
 
-def _select_branch_for(
-    schema: t.Any, value: t.Any, root: dict[str, t.Any]
-) -> dict[str, t.Any] | None:
-    """Pick the composition branch that describes a value's shape."""
-    resolved = _resolve_local_refs(schema, root)
-    if not isinstance(resolved, dict):
-        return None
+def _branches_for(
+    schemas: list[t.Any], value: t.Any, root: dict[str, t.Any]
+) -> list[dict[str, t.Any]]:
+    """Collect every composition branch that describes a value's shape."""
     wanted = "items" if isinstance(value, list) else "properties"
-
-    def find(node: t.Any, depth: int) -> dict[str, t.Any] | None:
+    found: list[dict[str, t.Any]] = []
+    seen: set[int] = set()
+    pending = [(schema, 0) for schema in reversed(schemas)]
+    work = 0
+    while pending:
+        node, depth = pending.pop()
+        work += 1
+        if work > MAX_NULL_CHECK_NODES:
+            raise ValueError(
+                f"JSON Schema branch traversal exceeds maximum work of {MAX_NULL_CHECK_NODES}"
+            )
+        if depth > MAX_NODE_DEPTH:
+            raise ValueError(
+                f"JSON Schema branch traversal exceeds maximum depth of {MAX_NODE_DEPTH}"
+            )
         candidate = _resolve_local_refs(node, root)
-        if not isinstance(candidate, dict) or depth > MAX_NODE_DEPTH:
-            return None
+        if not isinstance(candidate, dict) or id(candidate) in seen:
+            continue
+        seen.add(id(candidate))
         if wanted in candidate:
-            return candidate
-        for keyword in ("anyOf", "oneOf"):
+            found.append(candidate)
+            continue
+        for keyword in ("oneOf", "anyOf"):
             branches = candidate.get(keyword)
             if not isinstance(branches, list):
                 continue
-            for branch in branches:
-                found = find(branch, depth + 1)
-                if found is not None:
-                    return found
-        return None
-
-    return find(resolved, 0) or resolved
+            if work + len(pending) + len(branches) > MAX_NULL_CHECK_NODES:
+                raise ValueError(
+                    f"JSON Schema branch traversal exceeds maximum work of {MAX_NULL_CHECK_NODES}"
+                )
+            pending.extend((branch, depth + 1) for branch in reversed(branches))
+    return found
 
 
 def _omit_nulls(
     value: t.Any,
-    schema: t.Any,
+    schemas: list[t.Any],
     root: dict[str, t.Any],
     depth: int,
     null_check: _NullCheck,
@@ -684,20 +695,21 @@ def _omit_nulls(
         raise ValueError(
             f"Tool arguments exceed maximum nesting depth of {MAX_NODE_DEPTH}"
         )
-    node = _select_branch_for(schema, value, root) or {}
-    if isinstance(value, list):
-        items = node.get("items") if isinstance(node.get("items"), dict) else None
-        return [_omit_nulls(item, items, root, depth + 1, null_check) for item in value]
-    if not isinstance(value, dict):
+    if not isinstance(value, (dict, list)):
         return value
-    declared = node.get("properties")
-    properties: dict[str, t.Any] = declared if isinstance(declared, dict) else {}
+    nodes = _branches_for(schemas, value, root)
+    if isinstance(value, list):
+        items = [node["items"] for node in nodes if isinstance(node.get("items"), dict)]
+        return [_omit_nulls(item, items, root, depth + 1, null_check) for item in value]
+    properties = [
+        node["properties"] for node in nodes if isinstance(node.get("properties"), dict)
+    ]
     clone: dict[str, t.Any] = {}
     for key, child in value.items():
-        property_schema = properties.get(key)
+        declared = [property_[key] for property_ in properties if key in property_]
         if child is None:
-            if property_schema is None or null_check.accepts(property_schema):
+            if not declared or any(null_check.accepts(schema) for schema in declared):
                 clone[key] = child
             continue
-        clone[key] = _omit_nulls(child, property_schema, root, depth + 1, null_check)
+        clone[key] = _omit_nulls(child, declared, root, depth + 1, null_check)
     return clone

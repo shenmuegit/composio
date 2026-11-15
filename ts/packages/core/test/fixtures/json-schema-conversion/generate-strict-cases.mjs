@@ -12,12 +12,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, '../../../../../..');
 const { toStrictJsonSchema, omitNullToolArguments } = await import(
-  path.join(repoRoot, 'ts/packages/core/dist/index.mjs')
+  pathToFileURL(path.join(repoRoot, 'ts/packages/core/dist/index.mjs')).href
 );
 const obj = (properties, required, extra = {}) => ({
   type: 'object',
@@ -576,8 +576,130 @@ const cases = [
       ['alias']
     ),
   ],
+  ...['anyOf', 'oneOf'].map(keyword => [
+    `${keyword}-later-object-branch-arguments`,
+    'Null arguments declared only in a later object branch are omitted.',
+    obj(
+      {
+        target: {
+          [keyword]: [
+            obj({ channel: { type: 'string' } }, ['channel']),
+            obj({ email: { type: 'string' }, note: { type: 'string' } }, ['email']),
+          ],
+        },
+      },
+      ['target']
+    ),
+  ]),
+  [
+    'composed-shared-child-arguments',
+    'All declarations of a shared child participate in nested argument cleanup.',
+    obj(
+      {
+        target: {
+          anyOf: [
+            obj({ cfg: obj({ channel: { type: 'string' } }, ['channel']) }, ['cfg']),
+            obj({ cfg: obj({ email: { type: 'string' }, note: { type: 'string' } }, ['email']) }, [
+              'cfg',
+            ]),
+          ],
+        },
+      },
+      ['target']
+    ),
+  ],
+  [
+    'composed-array-items-arguments',
+    'Array arguments use item schemas from every array branch.',
+    obj(
+      {
+        target: {
+          anyOf: [
+            { type: 'array', items: obj({ channel: { type: 'string' } }, ['channel']) },
+            {
+              type: 'array',
+              items: obj({ email: { type: 'string' }, note: { type: 'string' } }, ['email']),
+            },
+          ],
+        },
+      },
+      ['target']
+    ),
+  ],
+  [
+    'composed-nullable-child-arguments',
+    'A later declaration that accepts null keeps an explicit clearing value.',
+    obj(
+      {
+        target: {
+          anyOf: [
+            obj({ cfg: obj({ note: { type: 'string' } }) }, ['cfg']),
+            obj(
+              {
+                cfg: obj({ email: { type: 'string' }, note: { type: ['string', 'null'] } }, [
+                  'email',
+                ]),
+              },
+              ['cfg']
+            ),
+          ],
+        },
+      },
+      ['target']
+    ),
+  ],
+  [
+    'composed-ref-arguments',
+    'Referenced object alternatives clean arguments from later branches.',
+    obj({ target: { $ref: '#/$defs/Target' } }, ['target'], {
+      $defs: {
+        Target: {
+          anyOf: [
+            obj({ channel: { type: 'string' } }, ['channel']),
+            obj({ email: { type: 'string' }, note: { type: 'string' } }, ['email']),
+          ],
+        },
+      },
+    }),
+  ],
 ];
 const argumentCases = {
+  'anyOf-later-object-branch-arguments': [
+    {
+      input: { target: { email: 'a@example.com', note: null } },
+      output: { target: { email: 'a@example.com' } },
+    },
+  ],
+  'oneOf-later-object-branch-arguments': [
+    {
+      input: { target: { email: 'a@example.com', note: null } },
+      output: { target: { email: 'a@example.com' } },
+    },
+  ],
+  'composed-shared-child-arguments': [
+    {
+      input: { target: { cfg: { email: 'a@example.com', note: null } } },
+      output: { target: { cfg: { email: 'a@example.com' } } },
+    },
+  ],
+  'composed-array-items-arguments': [
+    {
+      input: { target: [{ email: 'a@example.com', note: null }, null] },
+      output: { target: [{ email: 'a@example.com' }, null] },
+    },
+  ],
+  'composed-nullable-child-arguments': [
+    {
+      input: { target: { cfg: { email: 'a@example.com', note: null } } },
+      output: { target: { cfg: { email: 'a@example.com', note: null } } },
+    },
+  ],
+  'composed-ref-arguments': [
+    {
+      input: { target: { email: 'a@example.com', note: null } },
+      output: { target: { email: 'a@example.com' } },
+    },
+  ],
   'recursive-nullable-union-gets-null-branch': [
     { input: { a: null, b: null, self: null }, output: { a: null, b: null, self: null } },
   ],

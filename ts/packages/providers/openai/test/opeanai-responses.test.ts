@@ -384,6 +384,60 @@ describe('OpenAIResponsesProvider', () => {
       );
     });
 
+    it('omits a null declared only in a later object branch before strict execution', async () => {
+      const strictProvider = new OpenAIResponsesProvider({ strict: true });
+      strictProvider._setExecuteToolFn(mockExecuteToolFn);
+      const wrapped = strictProvider.wrapTool({
+        ...mockTool,
+        inputParameters: {
+          type: 'object',
+          properties: {
+            target: {
+              anyOf: [
+                {
+                  type: 'object',
+                  properties: { channel: { type: 'string' } },
+                  required: ['channel'],
+                },
+                {
+                  type: 'object',
+                  properties: {
+                    email: { type: 'string' },
+                    note: { type: 'string' },
+                    clearable: { type: ['string', 'null'] },
+                  },
+                  required: ['email'],
+                },
+              ],
+            },
+          },
+          required: ['target'],
+        },
+      }) as MockedOpenAITool;
+      expect(wrapped.strict).toBe(true);
+
+      await strictProvider.executeToolCall('test-user', {
+        id: 'call-5399',
+        type: 'function_call',
+        name: mockTool.slug,
+        arguments: JSON.stringify({
+          target: { email: 'a@example.com', note: null, clearable: null },
+        }),
+        call_id: 'call-5399',
+      });
+
+      expect(mockExecuteToolFn).toHaveBeenCalledWith(
+        mockTool.slug,
+        {
+          arguments: { target: { email: 'a@example.com', clearable: null } },
+          userId: 'test-user',
+          connectedAccountId: undefined,
+          customAuthParams: undefined,
+        },
+        undefined
+      );
+    });
+
     it('should coerce empty-string arguments to an empty object (issue #2406)', async () => {
       const toolCall = {
         id: 'call-123',

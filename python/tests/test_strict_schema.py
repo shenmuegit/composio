@@ -483,6 +483,116 @@ class TestOmitNullToolArguments:
         }
         assert arguments == snapshot
 
+    @pytest.mark.parametrize("keyword", ["anyOf", "oneOf"])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_cleans_later_object_branches(self, keyword, reverse):
+        branches = [
+            {"properties": {"channel": {"type": "string"}}},
+            {
+                "properties": {
+                    "email": {"type": "string"},
+                    "note": {"type": "string"},
+                }
+            },
+        ]
+        schema = {
+            "properties": {"target": {keyword: branches[::-1] if reverse else branches}}
+        }
+        arguments = {"target": {"email": "a@b.com", "note": None, "unknown": None}}
+        snapshot = copy.deepcopy((schema, arguments))
+
+        assert omit_null_tool_arguments(arguments, schema) == {
+            "target": {"email": "a@b.com", "unknown": None}
+        }
+        assert (schema, arguments) == snapshot
+
+    @pytest.mark.parametrize("array", [False, True])
+    @pytest.mark.parametrize("nullable", [False, True])
+    @pytest.mark.parametrize("reverse", [False, True])
+    def test_keeps_all_schemas_when_descending(self, array, nullable, reverse):
+        first = {"properties": {"note" if nullable else "channel": {"type": "string"}}}
+        second = {
+            "properties": {
+                "email": {"type": "string"},
+                "note": {"type": ["string", "null"] if nullable else "string"},
+            }
+        }
+        branches = [
+            {"items": first} if array else {"properties": {"cfg": first}},
+            {"items": second} if array else {"properties": {"cfg": second}},
+        ]
+        schema = {
+            "properties": {"target": {"anyOf": branches[::-1] if reverse else branches}}
+        }
+        payload = {"email": "a@b.com", "note": None}
+        arguments = {"target": [payload, None] if array else {"cfg": payload}}
+        expected = {"email": "a@b.com", **({"note": None} if nullable else {})}
+        snapshot = copy.deepcopy((schema, arguments))
+
+        assert omit_null_tool_arguments(arguments, schema) == {
+            "target": [expected, None] if array else {"cfg": expected}
+        }
+        assert (schema, arguments) == snapshot
+
+    def test_preserves_the_existing_properties_frontier(self):
+        schema = {
+            "properties": {"note": {"type": ["string", "null"]}},
+            "anyOf": [{"properties": {"note": {"type": "string"}}}],
+        }
+        arguments = {
+            "note": None,
+            "unknown": None,
+            "zero": 0,
+            "flag": False,
+            "empty": "",
+        }
+
+        assert omit_null_tool_arguments(arguments, schema) == arguments
+
+    def test_shared_reference_graph_and_cycle_are_processed_at_each_argument(self):
+        definitions = {"leaf": {"properties": {"note": {"type": "string"}}}}
+        for index in range(12):
+            previous = "leaf" if index == 0 else f"branch{index - 1}"
+            definitions[f"branch{index}"] = {
+                "anyOf": [{"$ref": f"#/$defs/{previous}"}] * 2
+            }
+        definitions["choice"] = {
+            "anyOf": [{"$ref": "#/$defs/choice"}, {"$ref": "#/$defs/branch11"}]
+        }
+        schema = {
+            "properties": {
+                "first": {"$ref": "#/$defs/choice"},
+                "second": {"$ref": "#/$defs/choice"},
+            },
+            "$defs": definitions,
+        }
+
+        assert omit_null_tool_arguments(
+            {"first": {"note": None}, "second": {"note": None}}, schema
+        ) == {"first": {}, "second": {}}
+
+    def test_branch_budget_rejects_partial_candidates_before_later_nullable_branch(
+        self,
+    ):
+        first = {"properties": {"note": {"type": "string"}}}
+        nullable = {"properties": {"note": {"type": ["string", "null"]}}}
+        schema = {"properties": {"target": {"anyOf": [first] * 3000 + [nullable]}}}
+        arguments = {"target": {"note": None}}
+
+        with pytest.raises(ValueError, match="(?i)schema.*(budget|limit|maximum)"):
+            omit_null_tool_arguments(arguments, schema)
+        assert arguments == {"target": {"note": None}}
+
+    def test_branch_depth_has_an_explicit_error(self):
+        target = {"properties": {"note": {"type": "string"}}}
+        for _ in range(514):
+            target = {"anyOf": [target]}
+
+        with pytest.raises(ValueError, match="(?i)schema.*depth"):
+            omit_null_tool_arguments(
+                {"target": {"note": None}}, {"properties": {"target": target}}
+            )
+
 
 class TestOpenAIResponsesProviderStrict:
     def _tool(self, input_parameters):

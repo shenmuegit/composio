@@ -1127,6 +1127,7 @@ export function toStrictJsonSchema(schema: unknown): StrictJsonSchemaResult {
  * forwarding that `null` to the tool would fail validation against the tool's
  * real schema, so it is treated as "omitted". A `null` the original schema
  * accepts (a nullable field, an explicit "clear this value") is kept.
+ * For composed shapes, a null is kept when any declaration accepts it.
  *
  * @param args - Normalized tool arguments.
  * @param schema - The dereferenced tool parameter schema the arguments were
@@ -1138,42 +1139,58 @@ export function omitNullToolArguments(
   schema: unknown
 ): Record<string, unknown> {
   const root: Record<string, unknown> = isPlainObject(schema) ? schema : {};
-  return omitNulls(args, root, root, 0, createNullCheck(root)) as Record<string, unknown>;
+  return omitNulls(args, [root], root, 0, createNullCheck(root)) as Record<string, unknown>;
 }
 
-/**
- * Picks the composition branch that describes a value's shape: the first
- * branch with `properties` for an object, the first with `items` for an
- * array. Nodes without a composition are returned as they are.
- */
-function selectBranchFor(
-  schema: unknown,
+/** Collects every composition branch that describes a value's shape. */
+function branchesFor(
+  schemas: readonly unknown[],
   value: unknown,
   root: Record<string, unknown>
-): Record<string, unknown> | undefined {
-  const resolved = resolveLocalRefs(schema, root);
-  if (!isPlainObject(resolved)) return undefined;
+): Record<string, unknown>[] {
   const wanted = Array.isArray(value) ? 'items' : 'properties';
-  const find = (node: unknown, depth: number): Record<string, unknown> | undefined => {
-    const candidate = resolveLocalRefs(node, root);
-    if (!isPlainObject(candidate) || depth > MAX_NODE_DEPTH) return undefined;
-    if (candidate[wanted] !== undefined) return candidate;
-    for (const keyword of ['anyOf', 'oneOf']) {
-      const branches = candidate[keyword];
-      if (!Array.isArray(branches)) continue;
-      for (const branch of branches) {
-        const found = find(branch, depth + 1);
-        if (found) return found;
+  const found: Record<string, unknown>[] = [];
+  const seen = new Set<object>();
+  const pending = schemas.map(schema => ({ schema, depth: 0 })).reverse();
+  let work = 0;
+  for (let entry = pending.pop(); entry; entry = pending.pop()) {
+    work++;
+    if (work > MAX_NULL_CHECK_NODES) {
+      throw new RangeError(
+        `JSON Schema branch traversal exceeds maximum work of ${MAX_NULL_CHECK_NODES}`
+      );
+    }
+    if (entry.depth > MAX_NODE_DEPTH) {
+      throw new RangeError(
+        `JSON Schema branch traversal exceeds maximum depth of ${MAX_NODE_DEPTH}`
+      );
+    }
+    const candidate = resolveLocalRefs(entry.schema, root);
+    if (!isPlainObject(candidate) || seen.has(candidate)) continue;
+    seen.add(candidate);
+    if (candidate[wanted] !== undefined) {
+      found.push(candidate);
+      continue;
+    }
+    for (const keyword of ['oneOf', 'anyOf']) {
+      const variants = candidate[keyword];
+      if (!Array.isArray(variants)) continue;
+      if (work + pending.length + variants.length > MAX_NULL_CHECK_NODES) {
+        throw new RangeError(
+          `JSON Schema branch traversal exceeds maximum work of ${MAX_NULL_CHECK_NODES}`
+        );
+      }
+      for (let i = variants.length - 1; i >= 0; i--) {
+        pending.push({ schema: variants[i], depth: entry.depth + 1 });
       }
     }
-    return undefined;
-  };
-  return find(resolved, 0) ?? resolved;
+  }
+  return found;
 }
 
 function omitNulls(
   value: unknown,
-  schema: unknown,
+  schemas: readonly unknown[],
   root: Record<string, unknown>,
   depth: number,
   acceptsNull: (schema: unknown) => boolean
@@ -1181,26 +1198,28 @@ function omitNulls(
   if (depth > MAX_NODE_DEPTH) {
     throw new RangeError(`Tool arguments exceed maximum nesting depth of ${MAX_NODE_DEPTH}`);
   }
-  const node = selectBranchFor(schema, value, root);
+  if (!Array.isArray(value) && !isPlainObject(value)) return value;
+  const nodes = branchesFor(schemas, value, root);
   if (Array.isArray(value)) {
-    const items = node && isPlainObject(node.items) ? node.items : undefined;
+    const items = nodes.flatMap(node => (isPlainObject(node.items) ? [node.items] : []));
     return value.map(item => omitNulls(item, items, root, depth + 1, acceptsNull));
   }
-  if (!isPlainObject(value)) return value;
 
-  const properties = node && isPlainObject(node.properties) ? node.properties : {};
+  const properties = nodes.flatMap(node =>
+    isPlainObject(node.properties) ? [node.properties] : []
+  );
   const clone: Record<string, unknown> = {};
   for (const [key, child] of Object.entries(value)) {
-    const propertySchema = Object.prototype.hasOwnProperty.call(properties, key)
-      ? properties[key]
-      : undefined;
+    const declared = properties.flatMap(property =>
+      Object.prototype.hasOwnProperty.call(property, key) ? [property[key]] : []
+    );
     if (child === null) {
-      if (propertySchema === undefined || acceptsNull(propertySchema)) {
+      if (declared.length === 0 || declared.some(acceptsNull)) {
         setOwn(clone, key, child);
       }
       continue;
     }
-    setOwn(clone, key, omitNulls(child, propertySchema, root, depth + 1, acceptsNull));
+    setOwn(clone, key, omitNulls(child, declared, root, depth + 1, acceptsNull));
   }
   return clone;
 }

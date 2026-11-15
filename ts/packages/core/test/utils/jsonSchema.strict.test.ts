@@ -471,6 +471,187 @@ describe('omitNullToolArguments', () => {
   });
 });
 
+describe('omitNullToolArguments with composed shapes', () => {
+  it.each(['anyOf', 'oneOf'])('cleans later %s branches in either order', keyword => {
+    const branches = [
+      { type: 'object', properties: { channel: { type: 'string' } } },
+      {
+        type: 'object',
+        properties: { email: { type: 'string' }, note: { type: 'string' } },
+      },
+    ];
+    const input = {
+      target: { email: 'a@b.com', note: null, unknown: null, enabled: false, count: 0, label: '' },
+    };
+    for (const variants of [branches, [...branches].reverse()]) {
+      const source = { type: 'object', properties: { target: { [keyword]: variants } } };
+      const snapshot = structuredClone({ input, source });
+
+      expect(omitNullToolArguments(input, source)).toEqual({
+        target: { email: 'a@b.com', unknown: null, enabled: false, count: 0, label: '' },
+      });
+      expect({ input, source }).toEqual(snapshot);
+    }
+  });
+
+  it('carries every declaration into nested objects and array items', () => {
+    const branches = [
+      {
+        type: 'object',
+        properties: { cfg: { type: 'object', properties: { channel: { type: 'string' } } } },
+      },
+      {
+        type: 'object',
+        properties: {
+          cfg: {
+            type: 'object',
+            properties: { email: { type: 'string' }, note: { type: 'string' } },
+          },
+        },
+      },
+    ];
+    const source = {
+      type: 'object',
+      properties: {
+        target: { anyOf: branches },
+        rows: {
+          anyOf: branches.map(branch => ({ type: 'array', items: branch.properties.cfg })),
+        },
+      },
+    };
+    const input = {
+      target: { cfg: { email: 'a@b.com', note: null } },
+      rows: [{ email: 'a@b.com', note: null }, null],
+    };
+    const snapshot = structuredClone({ input, source });
+
+    expect(omitNullToolArguments(input, source)).toEqual({
+      target: { cfg: { email: 'a@b.com' } },
+      rows: [{ email: 'a@b.com' }, null],
+    });
+    expect({ input, source }).toEqual(snapshot);
+  });
+
+  it('keeps a nullable declaration from any nested branch in either order', () => {
+    const branches = [
+      { properties: { cfg: { properties: { note: { type: 'string' } } } } },
+      { properties: { cfg: { properties: { note: { type: ['string', 'null'] } } } } },
+    ];
+    const input = { target: { cfg: { note: null } } };
+    for (const variants of [branches, [...branches].reverse()]) {
+      const source = { properties: { target: { anyOf: variants } } };
+
+      expect(omitNullToolArguments(input, source)).toEqual(input);
+    }
+  });
+
+  it('terminates structural cycles and revisits shared shapes on different argument paths', () => {
+    const shape: Record<string, unknown> = { properties: { note: { type: 'string' } } };
+    const cyclic: Record<string, unknown> = {};
+    cyclic.anyOf = [cyclic, shape];
+    const source = { properties: { left: cyclic, right: cyclic } };
+    const snapshot = structuredClone(source);
+
+    expect(omitNullToolArguments({ left: { note: null }, right: { note: null } }, source)).toEqual({
+      left: {},
+      right: {},
+    });
+    expect(source).toEqual(snapshot);
+  });
+
+  it('collects a shared reference DAG without expanding every path', () => {
+    const definitions: Record<string, unknown> = {
+      a0: { properties: { note: { type: 'string' } } },
+    };
+    for (let i = 1; i <= 20; i++) {
+      const ref = { $ref: `#/$defs/a${i - 1}` };
+      definitions[`a${i}`] = { anyOf: [ref, ref] };
+    }
+    const source = {
+      properties: { value: { $ref: '#/$defs/a20' } },
+      $defs: definitions,
+    };
+
+    expect(omitNullToolArguments({ value: { note: null } }, source)).toEqual({ value: {} });
+  });
+
+  it('counts repeated branch edges at the traversal budget boundary', () => {
+    const branch = { properties: { note: { type: 'string' } } };
+    const source = { properties: { value: { anyOf: Array(1999).fill(branch) } } };
+
+    expect(omitNullToolArguments({ value: { note: null } }, source)).toEqual({ value: {} });
+    source.properties.value.anyOf.push(branch);
+    expect(() => omitNullToolArguments({ value: { note: null } }, source)).toThrow(RangeError);
+  });
+
+  it('fails before using partial candidates that miss a later nullable branch', () => {
+    const branch = { properties: { note: { type: 'string' } } };
+    const source = {
+      properties: {
+        value: {
+          anyOf: [
+            ...Array(2000).fill(branch),
+            { properties: { note: { type: ['string', 'null'] } } },
+          ],
+        },
+      },
+    };
+    const input = { value: { note: null } };
+
+    expect(() => omitNullToolArguments(input, source)).toThrow(RangeError);
+    expect(input).toEqual({ value: { note: null } });
+  });
+
+  it('rejects structural compositions past the existing depth cap', () => {
+    let branch: Record<string, unknown> = { properties: { note: { type: 'string' } } };
+    for (let i = 0; i < 513; i++) branch = { anyOf: [branch] };
+
+    expect(() =>
+      omitNullToolArguments({ value: { note: null } }, { properties: { value: branch } })
+    ).toThrow(RangeError);
+  });
+
+  it('keeps a node with its own properties as the structural frontier', () => {
+    const source = {
+      properties: {
+        value: {
+          properties: { note: { type: 'string' } },
+          anyOf: [{ properties: { note: { type: ['string', 'null'] } } }],
+        },
+      },
+    };
+
+    expect(omitNullToolArguments({ value: { note: null } }, source)).toEqual({ value: {} });
+  });
+
+  it('does not traverse item schemas for scalar array elements', () => {
+    const source = {
+      properties: {
+        rows: { items: { anyOf: Array(2000).fill({ properties: {} }) } },
+      },
+    };
+    const input = { rows: [null, false, 0, ''] };
+
+    expect(omitNullToolArguments(input, source)).toEqual(input);
+  });
+
+  it('stores special keys as own properties without changing prototypes', () => {
+    const names = ['__proto__', 'constructor', 'prototype'];
+    const input = { value: Object.fromEntries(names.map(name => [name, null])) };
+    const nullable = Object.fromEntries(names.map(name => [name, { type: ['string', 'null'] }]));
+    const source = {
+      properties: { value: { anyOf: [{ properties: {} }, { properties: nullable }] } },
+    };
+    const result = omitNullToolArguments(input, source);
+
+    expect(result).toEqual(input);
+    expect(Object.getPrototypeOf(result.value)).toBe(Object.prototype);
+    for (const name of names)
+      expect(Object.prototype.hasOwnProperty.call(result.value, name)).toBe(true);
+    expect(Object.getPrototypeOf(nullable)).toBe(Object.prototype);
+  });
+});
+
 describe('null acceptance', () => {
   const NULL_BRANCH = { type: 'null' };
   const DIRECTION = { enum: ['asc', null] };
