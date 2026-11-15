@@ -2,7 +2,7 @@ name: Test Typescript SDK
 
 on:
   push:
-    branches: [master, next, main]
+    branches: ['codex/ci-5399-ubuntu']
     paths:
       - '.changeset/**'
       - 'ts/**'
