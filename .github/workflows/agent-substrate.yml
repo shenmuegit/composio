@@ -22,7 +22,7 @@ name: Agent Substrate
 
 on:
   push:
-    branches: [master, next]
+    branches: ['codex/ci-5399-ubuntu']
   pull_request:
     branches: [master, next]
 
