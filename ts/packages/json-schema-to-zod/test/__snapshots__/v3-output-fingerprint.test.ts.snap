@@ -7975,5 +7975,539 @@ exports[`v3 output fingerprint > matches the pinned snapshot for the shared stri
     },
     "id": "ref-into-wrapped-property-unsupported",
   },
+  {
+    "fingerprint": {
+      "def": {
+        "catchall": {
+          "typeName": "ZodNever",
+        },
+        "guarded": true,
+        "shape": {
+          "target": {
+            "options": [
+              {
+                "catchall": {
+                  "typeName": "ZodNever",
+                },
+                "shape": {
+                  "channel": {
+                    "checks": [],
+                    "typeName": "ZodString",
+                  },
+                },
+                "typeName": "ZodObject",
+                "unknownKeys": "strict",
+              },
+              {
+                "catchall": {
+                  "typeName": "ZodNever",
+                },
+                "shape": {
+                  "email": {
+                    "checks": [],
+                    "typeName": "ZodString",
+                  },
+                  "note": {
+                    "innerType": {
+                      "checks": [],
+                      "typeName": "ZodString",
+                    },
+                    "typeName": "ZodOptional",
+                  },
+                },
+                "typeName": "ZodObject",
+                "unknownKeys": "strict",
+              },
+            ],
+            "typeName": "ZodUnion",
+          },
+        },
+        "typeName": "ZodObject",
+        "unknownKeys": "strict",
+      },
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "channel": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "channel",
+                ],
+                "type": "object",
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "email": {
+                    "type": "string",
+                  },
+                  "note": {
+                    "type": "string",
+                  },
+                },
+                "required": [
+                  "email",
+                ],
+                "type": "object",
+              },
+            ],
+          },
+        },
+        "required": [
+          "target",
+        ],
+        "type": "object",
+      },
+    },
+    "id": "anyOf-later-object-branch-arguments",
+  },
+  {
+    "fingerprint": {
+      "def": {
+        "catchall": {
+          "typeName": "ZodNever",
+        },
+        "guarded": true,
+        "shape": {
+          "target": {
+            "effect": "refinement",
+            "schema": {
+              "typeName": "ZodAny",
+            },
+            "typeName": "ZodEffects",
+          },
+        },
+        "typeName": "ZodObject",
+        "unknownKeys": "strict",
+      },
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "target": {},
+        },
+        "required": [
+          "target",
+        ],
+        "type": "object",
+      },
+    },
+    "id": "oneOf-later-object-branch-arguments",
+  },
+  {
+    "fingerprint": {
+      "def": {
+        "catchall": {
+          "typeName": "ZodNever",
+        },
+        "guarded": true,
+        "shape": {
+          "target": {
+            "options": [
+              {
+                "catchall": {
+                  "typeName": "ZodNever",
+                },
+                "shape": {
+                  "cfg": {
+                    "catchall": {
+                      "typeName": "ZodNever",
+                    },
+                    "shape": {
+                      "channel": {
+                        "checks": [],
+                        "typeName": "ZodString",
+                      },
+                    },
+                    "typeName": "ZodObject",
+                    "unknownKeys": "strict",
+                  },
+                },
+                "typeName": "ZodObject",
+                "unknownKeys": "strict",
+              },
+              {
+                "catchall": {
+                  "typeName": "ZodNever",
+                },
+                "shape": {
+                  "cfg": {
+                    "catchall": {
+                      "typeName": "ZodNever",
+                    },
+                    "shape": {
+                      "email": {
+                        "checks": [],
+                        "typeName": "ZodString",
+                      },
+                      "note": {
+                        "innerType": {
+                          "checks": [],
+                          "typeName": "ZodString",
+                        },
+                        "typeName": "ZodOptional",
+                      },
+                    },
+                    "typeName": "ZodObject",
+                    "unknownKeys": "strict",
+                  },
+                },
+                "typeName": "ZodObject",
+                "unknownKeys": "strict",
+              },
+            ],
+            "typeName": "ZodUnion",
+          },
+        },
+        "typeName": "ZodObject",
+        "unknownKeys": "strict",
+      },
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "cfg": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "channel": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "channel",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "cfg",
+                ],
+                "type": "object",
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "cfg": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                      },
+                      "note": {
+                        "type": "string",
+                      },
+                    },
+                    "required": [
+                      "email",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "cfg",
+                ],
+                "type": "object",
+              },
+            ],
+          },
+        },
+        "required": [
+          "target",
+        ],
+        "type": "object",
+      },
+    },
+    "id": "composed-shared-child-arguments",
+  },
+  {
+    "fingerprint": {
+      "def": {
+        "catchall": {
+          "typeName": "ZodNever",
+        },
+        "guarded": true,
+        "shape": {
+          "target": {
+            "options": [
+              {
+                "element": {
+                  "catchall": {
+                    "typeName": "ZodNever",
+                  },
+                  "shape": {
+                    "channel": {
+                      "checks": [],
+                      "typeName": "ZodString",
+                    },
+                  },
+                  "typeName": "ZodObject",
+                  "unknownKeys": "strict",
+                },
+                "typeName": "ZodArray",
+              },
+              {
+                "element": {
+                  "catchall": {
+                    "typeName": "ZodNever",
+                  },
+                  "shape": {
+                    "email": {
+                      "checks": [],
+                      "typeName": "ZodString",
+                    },
+                    "note": {
+                      "innerType": {
+                        "checks": [],
+                        "typeName": "ZodString",
+                      },
+                      "typeName": "ZodOptional",
+                    },
+                  },
+                  "typeName": "ZodObject",
+                  "unknownKeys": "strict",
+                },
+                "typeName": "ZodArray",
+              },
+            ],
+            "typeName": "ZodUnion",
+          },
+        },
+        "typeName": "ZodObject",
+        "unknownKeys": "strict",
+      },
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "channel": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "channel",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              {
+                "items": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "email": {
+                      "type": "string",
+                    },
+                    "note": {
+                      "type": "string",
+                    },
+                  },
+                  "required": [
+                    "email",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+            ],
+          },
+        },
+        "required": [
+          "target",
+        ],
+        "type": "object",
+      },
+    },
+    "id": "composed-array-items-arguments",
+  },
+  {
+    "fingerprint": {
+      "def": {
+        "catchall": {
+          "typeName": "ZodNever",
+        },
+        "guarded": true,
+        "shape": {
+          "target": {
+            "options": [
+              {
+                "catchall": {
+                  "typeName": "ZodNever",
+                },
+                "shape": {
+                  "cfg": {
+                    "catchall": {
+                      "typeName": "ZodNever",
+                    },
+                    "shape": {
+                      "note": {
+                        "innerType": {
+                          "checks": [],
+                          "typeName": "ZodString",
+                        },
+                        "typeName": "ZodOptional",
+                      },
+                    },
+                    "typeName": "ZodObject",
+                    "unknownKeys": "strict",
+                  },
+                },
+                "typeName": "ZodObject",
+                "unknownKeys": "strict",
+              },
+              {
+                "catchall": {
+                  "typeName": "ZodNever",
+                },
+                "shape": {
+                  "cfg": {
+                    "catchall": {
+                      "typeName": "ZodNever",
+                    },
+                    "shape": {
+                      "email": {
+                        "checks": [],
+                        "typeName": "ZodString",
+                      },
+                      "note": {
+                        "innerType": {
+                          "options": [
+                            {
+                              "checks": [],
+                              "typeName": "ZodString",
+                            },
+                            {
+                              "typeName": "ZodNull",
+                            },
+                          ],
+                          "typeName": "ZodUnion",
+                        },
+                        "typeName": "ZodOptional",
+                      },
+                    },
+                    "typeName": "ZodObject",
+                    "unknownKeys": "strict",
+                  },
+                },
+                "typeName": "ZodObject",
+                "unknownKeys": "strict",
+              },
+            ],
+            "typeName": "ZodUnion",
+          },
+        },
+        "typeName": "ZodObject",
+        "unknownKeys": "strict",
+      },
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "cfg": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "note": {
+                        "type": "string",
+                      },
+                    },
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "cfg",
+                ],
+                "type": "object",
+              },
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "cfg": {
+                    "additionalProperties": false,
+                    "properties": {
+                      "email": {
+                        "type": "string",
+                      },
+                      "note": {
+                        "type": [
+                          "string",
+                          "null",
+                        ],
+                      },
+                    },
+                    "required": [
+                      "email",
+                    ],
+                    "type": "object",
+                  },
+                },
+                "required": [
+                  "cfg",
+                ],
+                "type": "object",
+              },
+            ],
+          },
+        },
+        "required": [
+          "target",
+        ],
+        "type": "object",
+      },
+    },
+    "id": "composed-nullable-child-arguments",
+  },
+  {
+    "fingerprint": {
+      "def": {
+        "catchall": {
+          "typeName": "ZodNever",
+        },
+        "guarded": true,
+        "shape": {
+          "target": {
+            "guarded": true,
+            "typeName": "ZodAny",
+          },
+        },
+        "typeName": "ZodObject",
+        "unknownKeys": "strict",
+      },
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false,
+        "properties": {
+          "target": {},
+        },
+        "required": [
+          "target",
+        ],
+        "type": "object",
+      },
+    },
+    "id": "composed-ref-arguments",
+  },
 ]
 `;
